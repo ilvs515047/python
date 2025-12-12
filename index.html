@@ -64,10 +64,10 @@
         <div class="col col-center">
             <h2>🤖 AI 助教 (Gemini 2.5)</h2>
             <div class="chat-container" id="chat-box">
-                <div class="msg ai">你好！我是 Python 學習助教。選擇左邊的主題，我們可以開始討論，或者直接在下方問我程式問題。</div>
+                <div class="msg ai">你好！我是 Python 學習助教。選擇左邊的主題，我們可以開始討論，或者直接在下方問我程式問題（我會自動讀取你右邊寫的程式碼喔！）。</div>
             </div>
             <div class="input-area">
-                <input type="text" id="ai-input" placeholder="問問 AI (例如: 迴圈怎麼寫?)..." onkeypress="handleKeyPress(event)">
+                <input type="text" id="ai-input" placeholder="問問 AI (例如: 這段程式碼哪裡錯了?)..." onkeypress="handleKeyPress(event)">
                 <button class="btn btn-send" onclick="askAI()" id="btn-ask">發送</button>
             </div>
 
@@ -93,7 +93,7 @@ for i in range(5):
     <script>
         // ============================================
         // 設定區：請將下方的網址換成您的 Web App URL
-        // ============================================
+        // (這是您上次提供的網址，如果這不是最新的，請手動替換)
         const GAS_URL = "https://script.google.com/macros/s/AKfycbweMiuhVjiWlqAtqYlI1cu6qOo13nK7y5V7FZgwTSRGzIu1rG30YkM19aGi1J_YlUWd/exec"; 
         // ============================================
 
@@ -176,9 +176,6 @@ for i in range(5):
             // 載入筆記
             const item = learningData.find(d => d.id == id);
             document.getElementById('note-input').value = item.note || "";
-            
-            // 提示 AI
-            // document.getElementById('chat-box').innerHTML += `<div class="msg ai">你切換到了主題：「${item.topic}」。有什麼問題嗎？</div>`;
         }
 
         // 4. 打勾完成
@@ -220,7 +217,7 @@ for i in range(5):
             });
         }
 
-        // 6. AI 互動
+        // 6. AI 互動 (已修正：現在會讀取代碼了！)
         function handleKeyPress(e) {
             if (e.key === 'Enter') askAI();
         }
@@ -229,29 +226,42 @@ for i in range(5):
             const input = document.getElementById('ai-input');
             const chatBox = document.getElementById('chat-box');
             const btn = document.getElementById('btn-ask');
-            const text = input.value.trim();
             
+            // ★★★ 新增：抓取右邊編譯器的程式碼內容 ★★★
+            const editor = document.getElementById('editor'); 
+            
+            const text = input.value.trim();
             if (!text) return;
 
-            // 顯示用戶訊息
+            // UI 顯示：只顯示使用者的問題 (保持聊天視窗乾淨)
             chatBox.innerHTML += `<div class="msg user">${text}</div>`;
             input.value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
 
             // 鎖定按鈕
             btn.disabled = true;
-            btn.innerText = "思考中...";
+            btn.innerText = "讀取並思考中...";
             
             const loadingMsg = document.createElement('div');
             loadingMsg.className = 'msg ai';
-            loadingMsg.innerText = "Gemini 2.5 正在思考...";
+            loadingMsg.innerText = "Gemini 2.5 正在閱讀你的程式碼並思考...";
             chatBox.appendChild(loadingMsg);
+
+            // ★★★ 關鍵魔法：把「問題」跟「程式碼」打包在一起 ★★★
+            const codeContent = editor.value;
+            const fullMessage = `
+            ${text}
+
+            ---
+            (以下是使用者目前在編譯器中撰寫的 Python 程式碼，請參考)
+            ${codeContent}
+            `;
 
             // 發送請求
             fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'ask_ai', message: text })
+                body: JSON.stringify({ action: 'ask_ai', message: fullMessage })
             })
             .then(res => res.json())
             .then(data => {

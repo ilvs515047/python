@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python 學習儀表板</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.11.0/brython.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.11.0/brython_stdlib.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        .container { display: flex; height: 100vh; }
+        
+        /* 通用區塊樣式 */
+        .column { padding: 20px; box-sizing: border-box; overflow-y: auto; border-right: 1px solid #ddd; }
+        h2 { font-size: 1.2rem; color: #333; margin-top: 0; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; display: inline-block;}
+
+        /* 左邊：大綱 */
+        .left { width: 25%; background: #fff; }
+        .chapter { font-weight: bold; margin-top: 15px; color: #555; }
+        .topic-item { display: flex; align-items: center; padding: 8px 0; cursor: pointer; transition: 0.2s; }
+        .topic-item:hover { background: #f9f9f9; }
+        .topic-item.active { background: #e3f2fd; font-weight: bold; }
+        .topic-item input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+
+        /* 中間：AI與心得 */
+        .center { width: 35%; background: #fcfcfc; display: flex; flex-direction: column; }
+        .chat-box { flex: 1; border: 1px solid #ddd; border-radius: 8px; background: #fff; padding: 15px; margin-bottom: 15px; overflow-y: auto; }
+        .note-area { height: 150px; width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; margin-bottom: 10px; }
+        .btn { background: #4CAF50; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; }
+        .btn:hover { background: #45a049; }
+        .ai-msg { background: #e8f5e9; padding: 8px; border-radius: 8px; margin: 5px 0; }
+        .user-msg { background: #e3f2fd; padding: 8px; border-radius: 8px; margin: 5px 0; text-align: right; }
+
+        /* 右邊：編譯器 */
+        .right { width: 40%; background: #1e1e1e; color: #d4d4d4; display: flex; flex-direction: column; }
+        .right h2 { color: #ddd; border-bottom-color: #007acc; }
+        #editor { flex: 1; background: #252526; color: #d4d4d4; border: 1px solid #333; padding: 10px; font-family: 'Consolas', monospace; font-size: 14px; resize: none; outline: none; }
+        #output { height: 30%; background: #000; color: #0f0; padding: 10px; font-family: 'Consolas', monospace; overflow-y: auto; border-top: 1px solid #444; margin-top: 10px; }
+        .run-btn { background: #007acc; margin-top: 10px; width: 100%; }
+        
+        /* 載入遮罩 */
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:flex; justify-content:center; align-items:center; z-index:999; }
+    </style>
+</head>
+<body onload="brython()">
+
+    <div id="loading">正在從 Google Sheets 讀取進度...</div>
+
+    <div class="container">
+        <div class="column left">
+            <h2>📚 學習大綱</h2>
+            <div id="outline-container"></div>
+        </div>
+
+        <div class="column center">
+            <h2>💡 心得 & AI 助教</h2>
+            
+            <div id="chat-box" class="chat-box">
+                <div class="ai-msg">嗨！選擇左邊的主題開始學習，有問題可以在這裡問我。</div>
+            </div>
+            
+            <div style="display:flex; gap:5px; margin-bottom: 10px;">
+                <input type="text" id="ai-input" style="flex:1; padding:8px;" placeholder="詢問 AI...">
+                <button class="btn" onclick="askAI()" style="background:#2196F3;">發送</button>
+            </div>
+
+            <hr style="width:100%; border:0; border-top:1px solid #ddd; margin: 10px 0;">
+            
+            <label for="note-input"><b>📝 本節心得 (自動儲存)</b></label>
+            <textarea id="note-input" class="note-area" placeholder="點選左側主題後，在此輸入心得..."></textarea>
+            <button class="btn" onclick="saveCurrentNote()">儲存心得至 Sheets</button>
+        </div>
+
+        <div class="column right">
+            <h2>🐍 Python 編譯器</h2>
+            <textarea id="editor"># 在這裡輸入 Python 代碼
+print("Hello, World!")
+for i in range(3):
+    print(i)
+</textarea>
+            <button class="btn run-btn" id="run-btn">▶ 執行程式碼</button>
+            <pre id="output">執行結果將顯示於此...</pre>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // ================= 配置區 =================
+        const GAS_URL = "您的_GAS_WEB_APP_URL_貼在這裡"; 
+        // =========================================
+
+        let learningData = [];
+        let currentTopicId = null;
+
+        // 初始化：讀取資料
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch(GAS_URL)
+                .then(res => res.json())
+                .then(data => {
+                    learningData = data;
+                    renderOutline();
+                    document.getElementById('loading').style.display = 'none';
+                })
+                .catch(err => {
+                    alert("讀取資料失敗，請檢查 GAS 部署權限");
+                    console.error(err);
+                });
+        });
+
+        // 渲染左側大綱
+        function renderOutline() {
+            const container = document.getElementById('outline-container');
+            container.innerHTML = '';
+            
+            let currentSection = '';
+            learningData.forEach(item => {
+                // 如果是新章節，加入標題
+                if (item.section !== currentSection) {
+                    const sectionTitle = document.createElement('div');
+                    sectionTitle.className = 'chapter';
+                    sectionTitle.innerText = item.section;
+                    container.appendChild(sectionTitle);
+                    currentSection = item.section;
+                }
+
+                // 建立細項
+                const div = document.createElement('div');
+                div.className = 'topic-item';
+                div.onclick = (e) => {
+                    if(e.target.type !== 'checkbox') selectTopic(item.id);
+                };
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = item.done;
+                checkbox.onclick = (e) => toggleDone(item.id, e.target.checked);
+
+                const span = document.createElement('span');
+                span.innerText = item.topic;
+
+                div.appendChild(checkbox);
+                div.appendChild(span);
+                container.appendChild(div);
+            });
+        }
+
+        // 選擇主題
+        function selectTopic(id) {
+            currentTopicId = id;
+            const item = learningData.find(d => d.id === id);
+            
+            // 更新 UI 顯示
+            document.querySelectorAll('.topic-item').forEach(el => el.classList.remove('active'));
+            // 簡單處理 active 樣式 (實際應用可優化)
+            
+            // 載入心得
+            document.getElementById('note-input').value = item.note || "";
+            
+            // 提示
+            document.getElementById('chat-box').innerHTML += `<div class="ai-msg">你切換到了：${item.topic}。有什麼問題嗎？</div>`;
+        }
+
+        // 切換完成狀態 (同步到 GAS)
+        function toggleDone(id, isDone) {
+            // 更新本地資料
+            const item = learningData.find(d => d.id === id);
+            item.done = isDone;
+
+            // 發送到 GAS
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors', // 重要：避免 CORS 錯誤，但無法讀取回傳值
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'toggle', id: id, done: isDone })
+            }).then(() => console.log("Updated checkbox"));
+        }
+
+        // 儲存心得 (同步到 GAS)
+        function saveCurrentNote() {
+            if (!currentTopicId) return alert("請先選擇一個主題！");
+            
+            const content = document.getElementById('note-input').value;
+            const item = learningData.find(d => d.id === currentTopicId);
+            item.note = content;
+
+            const btn = document.querySelector('button[onclick="saveCurrentNote()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "儲存中...";
+
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'save_note', id: currentTopicId, note: content })
+            }).then(() => {
+                btn.innerText = originalText;
+                alert("心得已儲存！");
+            });
+        }
+
+        // 模擬 AI 回應 (因為沒接真實 API Key)
+        function askAI() {
+            const input = document.getElementById('ai-input');
+            const chatBox = document.getElementById('chat-box');
+            const text = input.value;
+            if(!text) return;
+
+            // 顯示使用者訊息
+            chatBox.innerHTML += `<div class="user-msg">${text}</div>`;
+            input.value = '';
+
+            // 模擬 AI 思考與回應
+            setTimeout(() => {
+                // 這裡可以換成 fetch OpenAI API
+                const reply = `(AI 模擬回應): 關於 "${text}"，你可以嘗試 print() 看看結果。`; 
+                chatBox.innerHTML += `<div class="ai-msg">${reply}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 1000);
+        }
+    </script>
+
+    <script type="text/python">
+        from browser import document, alert
+        import sys
+
+        # 重導 stdout 到網頁上的 div
+        class Output:
+            def write(self, *args):
+                document["output"].text += args[0]
+            def flush(self):
+                pass
+
+        sys.stdout = Output()
+        sys.stderr = Output()
+
+        def run_code(ev):
+            document["output"].text = "" # 清空舊輸出
+            code = document["editor"].value
+            try:
+                exec(code)
+            except Exception as e:
+                print(f"Error: {e}")
+
+        document["run-btn"].bind("click", run_code)
+    </script>
+
+</body>
+</html>

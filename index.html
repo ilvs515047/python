@@ -6,7 +6,7 @@
     <title>Win Python 98 SE - Desktop Environment</title>
     <style>
         /* =========================================
-           1. 懷舊環境與硬體 CSS (新增部分)
+           1. 懷舊環境與硬體 CSS
            ========================================= */
         :root {
             --bezel-color: #dcdcdc; /* 電腦米白色 */
@@ -20,7 +20,6 @@
             margin: 0;
             height: 100vh;
             background-color: #e0e0e0;
-            /* 模擬台灣90年代常見的磨石子/貼皮牆面與環境光 */
             background: radial-gradient(circle at 50% 30%, #fffbf0 0%, #dcd6c0 100%);
             display: flex;
             align-items: center;
@@ -48,7 +47,7 @@
             align-items: flex-end;
             gap: 20px;
             z-index: 10;
-            transform: scale(0.9); /* 如果螢幕太小可以縮放 */
+            transform: scale(0.9);
         }
 
         /* --- 主機 (Tower Case) --- */
@@ -68,7 +67,6 @@
             align-items: center;
             padding-top: 20px;
         }
-        /* 光碟機與軟碟機槽 */
         .drive-bay {
             width: 120px;
             height: 40px;
@@ -81,7 +79,6 @@
             justify-content: space-between;
             padding: 0 10px;
         }
-        .drive-line { width: 100%; height: 2px; background: #aaa; }
         .floppy-bay {
             width: 120px;
             height: 30px;
@@ -94,7 +91,6 @@
             width: 80px; height: 4px; background: #333; 
             position: absolute; top: 12px; left: 20px; border-radius: 2px;
         }
-        /* 電源區 */
         .power-section {
             margin-top: auto;
             margin-bottom: 30px;
@@ -136,18 +132,16 @@
                 inset -5px -5px 15px rgba(0,0,0,0.2),
                 10px 10px 30px rgba(0,0,0,0.5);
         }
-        /* 螢幕玻璃區 */
         .monitor-glass {
             width: 100%;
             height: 100%;
             background: #000;
-            border-radius: 40px / 30px; /* 模擬曲面 */
+            border-radius: 40px / 30px;
             overflow: hidden;
             position: relative;
             border: 4px solid #333;
             box-shadow: inset 0 0 20px rgba(0,0,0,1);
         }
-        /* 螢幕反光與掃描線 */
         .monitor-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -157,10 +151,9 @@
             background-size: 100% 3px, 3px 100%;
             border-radius: 36px / 26px;
             z-index: 100;
-            pointer-events: none; /* 讓點擊穿透 */
+            pointer-events: none;
             box-shadow: inset 0 0 40px rgba(0,0,0,0.3);
         }
-        /* 螢幕下方的 LOGO 與按鈕 */
         .monitor-controls {
             position: absolute;
             bottom: 15px;
@@ -174,8 +167,6 @@
         .monitor-logo { font-weight: bold; color: #666; font-style: italic; margin-right: 20px; text-shadow: 1px 1px 0 #fff; }
         .ctrl-btn { width: 15px; height: 8px; background: #999; border-radius: 2px; }
         .power-led-mon { width: 6px; height: 6px; background: #0f0; border-radius: 50%; box-shadow: 0 0 3px #0f0; }
-
-        /* 螢幕底座 */
         .monitor-stand {
             position: absolute;
             bottom: -30px;
@@ -191,9 +182,8 @@
         }
 
         /* =========================================
-           2. 原有的 Win98 樣式 (針對嵌入環境調整)
+           2. Win98 樣式
            ========================================= */
-        /* 將原本 body 的變數移到 wrapper 內，避免衝突 */
         .win98-os-wrapper {
             --win-bg: #008080;
             --win-gray: #c0c0c0;
@@ -205,28 +195,21 @@
             --win-text: #000000;
             --win-link-blue: #0000FF;
 
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             background-color: var(--win-bg);
             font-size: 12px;
             display: flex;
             padding: 4px;
             box-sizing: border-box;
             cursor: default;
-            /* 修正內部 overflow */
             overflow: hidden; 
         }
 
-        /* 以下為你原本的 CSS，幾乎未動，僅針對 wrapper 修正 */
         .win98-os-wrapper * { box-sizing: border-box; }
-        
-        /* 復古捲軸 */
         .win98-os-wrapper ::-webkit-scrollbar { width: 16px; height: 16px; background: var(--win-gray); }
         .win98-os-wrapper ::-webkit-scrollbar-thumb { background: var(--win-gray); border: 2px outset var(--win-light); }
         .win98-os-wrapper ::-webkit-scrollbar-button { background: var(--win-gray); border: 2px outset var(--win-light); width: 16px; height: 16px; }
-        .win98-os-wrapper ::-webkit-scrollbar-button:vertical:decrement::after { content: "▴"; display: block; text-align: center; margin-top: -2px; color: black; }
-        .win98-os-wrapper ::-webkit-scrollbar-button:vertical:increment::after { content: "▾"; display: block; text-align: center; margin-top: -2px; color: black; }
-
+        
         .window {
             width: 100%; height: 100%; background: var(--win-gray);
             border: 2px outset var(--win-light);
@@ -243,7 +226,7 @@
         .win-control-btn {
             width: 16px; height: 14px; background: var(--win-gray);
             border: 2px outset var(--win-light);
-            color: black; font-size: 9px; line-height: 10px; text-align: center; font-family: "Arial";
+            color: black; font-size: 9px; line-height: 10px; text-align: center;
             margin-left: 2px;
         }
 
@@ -251,40 +234,28 @@
         .address-bar { flex: 1; border: 2px inset var(--win-light); background: white; padding: 2px 4px; font-family: monospace; }
 
         .branding-section {
-            display: flex; align-items: center; 
-            justify-content: flex-start;
-            padding: 8px 12px;
-            background: var(--win-gray);
-            border-bottom: 1px solid var(--win-gray-dark);
-            gap: 15px;
+            display: flex; align-items: center; justify-content: flex-start;
+            padding: 8px 12px; background: var(--win-gray);
+            border-bottom: 1px solid var(--win-gray-dark); gap: 15px;
         }
 
-        .win98-real-logo {
-            height: 60px;
-            width: auto;
-            display: block;
-        }
-
+        .win98-real-logo { height: 60px; width: auto; display: block; }
         .brand-title-new {
             font-family: "Arial Black", "Impact", sans-serif; 
-            font-size: 28px;
-            font-style: italic; font-weight: 900;
+            font-size: 28px; font-style: italic; font-weight: 900;
             color: black; text-shadow: 1px 1px 0 white;
-            letter-spacing: -1px; line-height: 1;
-            margin-top: 10px;
+            letter-spacing: -1px; line-height: 1; margin-top: 10px;
         }
 
         .main-body { flex: 1; display: flex; padding: 6px; gap: 6px; overflow: hidden; border-top: 1px solid var(--win-light); border-left: 1px solid var(--win-light); border-right: 1px solid var(--win-gray-dark); border-bottom: 1px solid var(--win-gray-dark);}
 
         .sidebar {
-            width: 180px; /* 稍微縮窄配合 800x600 */
-            background: white; border: 2px inset var(--win-light);
+            width: 180px; background: white; border: 2px inset var(--win-light);
             overflow-y: auto; padding: 4px; flex-shrink: 0;
         }
         .win-folder {
             width: 14px; height: 10px; background: #ffcc00; border: 1px solid #886600;
-            position: relative; margin-right: 6px; border-radius: 1px;
-            display: inline-block;
+            position: relative; margin-right: 6px; border-radius: 1px; display: inline-block;
         }
         .win-folder::before {
             content:''; position:absolute; top:-3px; left:0; width:7px; height:3px;
@@ -298,7 +269,7 @@
         .done-mark { margin-left: auto; font-weight: bold; color: #008000; visibility: hidden; }
         .nav-item.completed .done-mark { visibility: visible; }
 
-        .content-area { flex: 1; display: flex; gap: 6px; min-width: 0; /* 防止 flex 子元素溢出 */ }
+        .content-area { flex: 1; display: flex; gap: 6px; min-width: 0; }
         .lesson-view { flex: 1; background: white; border: 2px inset var(--win-light); padding: 15px; overflow-y: auto; }
         .compiler-view { width: 45%; background: var(--win-gray); border: 2px inset var(--win-light); display: flex; flex-direction: column; }
 
@@ -316,21 +287,16 @@
         .quiz-card { border: 1px solid var(--win-gray-darker); background: var(--win-gray); padding: 8px; margin-bottom: 8px; box-shadow: 1px 1px 0 white inset; }
         .quiz-loading { padding: 10px; color: var(--win-gray-dark); font-style: italic; }
 
-        pre { background: #000; color: #0f0; padding: 5px; border: 1px inset; font-family: monospace; white-space: pre-wrap; }
-        code { background: #eee; padding: 0 4px; border: 1px solid #ccc; font-family: monospace; }
-
         .status-bar {
             border-top: 1px solid var(--win-light); border-bottom: 1px solid var(--win-gray-dark);
             padding: 2px 4px; font-size: 11px; color: black; display: flex; justify-content: space-between;
-            background: var(--win-gray);
-            flex-shrink: 0;
+            background: var(--win-gray); flex-shrink: 0;
         }
         .status-panel { border: 1px inset var(--win-light); padding: 1px 4px; flex: 1; }
         .status-gripper {
             width: 15px; margin-left: 4px; border: 1px inset var(--win-light);
             background-image: repeating-linear-gradient(-45deg, var(--win-gray), var(--win-gray) 2px, var(--win-light) 2px, var(--win-light) 3px, var(--win-gray-dark) 3px, var(--win-gray-dark) 4px);
         }
-
     </style>
 </head>
 <body>
@@ -338,7 +304,6 @@
     <div class="desk"></div>
 
     <div class="setup-container">
-        
         <div class="pc-tower">
             <div class="brand-sticker">Lemel</div>
             <div class="drive-bay">
@@ -358,7 +323,8 @@
 
         <div class="monitor">
             <div class="monitor-glass">
-                <div class="monitor-overlay"></div> <div class="win98-os-wrapper">
+                <div class="monitor-overlay"></div> 
+                <div class="win98-os-wrapper">
                     <div class="window">
                         <div class="title-bar">
                             <span>Python Learning System 98 (Dynamic DB)</span>
@@ -384,7 +350,6 @@
                             <img src="https://upload.wikimedia.org/wikipedia/commons/archive/c/c1/20170726054839%21Windows_98_logo.svg" 
                                  alt="Windows 98 Logo" 
                                  class="win98-real-logo">
-                            
                             <div class="brand-title-new">Win Python</div>
                         </div>
 
@@ -392,7 +357,6 @@
                             <div class="sidebar" id="sidebar">
                                 <div style="padding:10px; color:#666;">Connecting to server to fetch folder list...</div>
                             </div>
-                            
                             <div class="content-area">
                                 <div class="lesson-view" id="contentPanel">
                                     <div style="text-align:center; padding-top:50px;">
@@ -400,7 +364,6 @@
                                         <b>Connecting to Cloud Database...</b><br>Please wait while we download the lesson plan.
                                     </div>
                                 </div>
-                                
                                 <div class="compiler-view">
                                     <div style="color:white; background:var(--win-title-blue-1); padding:2px 4px; font-weight:bold; font-family:monospace; font-size:11px; display:flex; align-items:center;">
                                         <span style="margin-right:4px;">>_</span> MS-DOS Prompt - python.exe
@@ -418,11 +381,12 @@
                         </div>
                     </div>
                 </div>
-                </div>
+            </div>
             
             <div class="monitor-controls">
                 <div class="power-led-mon"></div>
-                <div class="monitor-logo">TATUNG</div> <div class="ctrl-btn"></div>
+                <div class="monitor-logo">TATUNG</div> 
+                <div class="ctrl-btn"></div>
                 <div class="ctrl-btn"></div>
                 <div class="ctrl-btn"></div>
             </div>
@@ -431,7 +395,6 @@
     </div>
 
 <script>
-    // --- JS 功能完全維持不變，僅變數宣告區塊 ---
     let roadmap = []; 
     let dbQuestions = []; 
     let currentChapterIndex = 0;
@@ -451,20 +414,36 @@
         .then(data => {
             console.log("Data Received:", data);
             
+            // 1. 處理課程
             if (data.lessons && data.lessons.length > 0) {
                 roadmap = data.lessons;
             } else {
                 alert("Warning: No lessons found in 'Lessons' sheet.");
             }
 
+            // 2. 處理題目
             if (data.questions) {
                 dbQuestions = data.questions;
             }
 
+            // ============================================
+            // 3. 【關鍵修正】處理雲端筆記資料
+            // ============================================
+            if (data.progress) {
+                console.log("Syncing cloud notes...", data.progress);
+                // 把 GAS 傳回來的 progress 寫入瀏覽器的 localStorage
+                // 這樣等一下 loadLocalProgress() 執行時，就會讀到這些資料了
+                for (const [lid, pData] of Object.entries(data.progress)) {
+                    const storageKey = `py_win98se_v10_${lid}`;
+                    localStorage.setItem(storageKey, JSON.stringify(pData));
+                }
+            }
+            // ============================================
+
             status.innerText = `Online. (${roadmap.length} units, ${dbQuestions.length} questions)`;
             
             renderSidebar();
-            loadLocalProgress(); 
+            loadLocalProgress(); // 這裡會讀取剛剛更新的 localStorage
             
             if(roadmap.length > 0) {
                 renderContent(0);

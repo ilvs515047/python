@@ -3,312 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python 自學系統 (Gemini 2.5)</title>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.11.0/brython.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.11.0/brython_stdlib.js"></script>
+    <title>Win Python 98 Second Edition</title>
     <style>
-        /* 簡單清爽的 CSS 設定 */
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; }
-        .container { display: flex; height: 100vh; }
+        /* --- Win98 經典色盤與設定 --- */
+        :root {
+            --win-bg: #008080;
+            --win-gray: #c0c0c0;
+            --win-gray-dark: #808080;
+            --win-gray-darker: #404040;
+            --win-light: #ffffff;
+            --win-title-blue-1: #000080;
+            --win-title-blue-2: #1084d0;
+            --win-text: #000000;
+            --win-link-blue: #0000FF;
+        }
         
-        /* 三欄佈局 */
-        .col { padding: 20px; box-sizing: border-box; border-right: 1px solid #ddd; overflow-y: auto; display: flex; flex-direction: column; }
-        .col-left { width: 25%; background: #fff; }
-        .col-center { width: 35%; background: #fafafa; }
-        .col-right { width: 40%; background: #1e1e1e; color: #d4d4d4; padding: 0; }
+        * { box-sizing: border-box; }
 
-        h2 { font-size: 1.1rem; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
-
-        /* 左側：大綱列表 */
-        .section-title { font-weight: bold; margin-top: 15px; color: #7f8c8d; font-size: 0.9rem; }
-        .topic-item { display: flex; align-items: center; padding: 10px; cursor: pointer; border-radius: 5px; margin: 5px 0; transition: 0.2s; }
-        .topic-item:hover { background: #ecf0f1; }
-        .topic-item.active { background: #d6eaf8; font-weight: bold; border-left: 4px solid #3498db; }
-        .topic-item input[type="checkbox"] { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
-
-        /* 中間：聊天與筆記 */
-        .chat-container { flex: 1; border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; padding: 15px; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 15px; border-radius: 10px; max-width: 80%; line-height: 1.5; font-size: 0.95rem; }
-        .msg.ai { background: #e8f6f3; align-self: flex-start; border-bottom-left-radius: 0; color: #333; }
-        .msg.user { background: #d6eaf8; align-self: flex-end; border-bottom-right-radius: 0; color: #000; }
+        /* 復古捲軸 */
+        ::-webkit-scrollbar { width: 16px; height: 16px; background: var(--win-gray); }
+        ::-webkit-scrollbar-thumb { background: var(--win-gray); border: 2px outset var(--win-light); }
+        ::-webkit-scrollbar-button { background: var(--win-gray); border: 2px outset var(--win-light); width: 16px; height: 16px; }
+        ::-webkit-scrollbar-button:vertical:decrement::after { content: "▴"; display: block; text-align: center; margin-top: -2px; color: black; }
+        ::-webkit-scrollbar-button:vertical:increment::after { content: "▾"; display: block; text-align: center; margin-top: -2px; color: black; }
         
-        .input-area { display: flex; gap: 5px; margin-bottom: 20px; }
-        .input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-send { background: #3498db; color: white; }
-        .btn-save { background: #27ae60; color: white; margin-top: 5px; width: 100%; }
-        .btn-run { background: #f1c40f; color: #333; width: 100%; padding: 15px; font-size: 1rem; }
-        .btn:hover { opacity: 0.9; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        body {
+            background-color: var(--win-bg);
+            font-family: "MS Sans Serif", "Microsoft Sans Serif", "Tahoma", monospace; 
+            font-size: 12px;
+            margin: 0; height: 100vh; display: flex; padding: 4px; overflow: hidden;
+            cursor: default;
+        }
 
-        textarea.note-box { width: 100%; height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; box-sizing: border-box; }
+        .window {
+            width: 100%; height: 100%; background: var(--win-gray);
+            border: 2px outset var(--win-light);
+            display: flex; flex-direction: column;
+            box-shadow: 1px 1px 2px black;
+        }
 
-        /* 右側：編譯器 */
-        #editor { flex: 1; width: 100%; background: #252526; color: #d4d4d4; border: none; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; outline: none; resize: none; box-sizing: border-box; }
-        #output { height: 30%; background: #000; color: #00ff00; padding: 15px; font-family: 'Consolas', monospace; overflow-y: auto; box-sizing: border-box; margin: 0; border-top: 1px solid #333; white-space: pre-wrap; }
+        .title-bar {
+            background: linear-gradient(90deg, var(--win-title-blue-1), var(--win-title-blue-2));
+            padding: 3px 4px; color: white; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center;
+        }
 
-        /* 載入遮罩 */
-        #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index: 1000; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; color: #555; }
+        .win-control-btn {
+            width: 16px; height: 14px; background: var(--win-gray);
+            border: 2px outset var(--win-light);
+            color: black; font-size: 9px; line-height: 10px; text-align: center; font-family: "Arial";
+            margin-left: 2px;
+        }
+
+        .toolbar { padding: 4px; border-top: 1px solid var(--win-light); display: flex; gap: 6px; align-items: center; background: var(--win-gray); }
+        .address-bar { flex: 1; border: 2px inset var(--win-light); background: white; padding: 2px 4px; font-family: monospace; }
+
+        /* --- 改版：品牌Header區域 (移除廣告，使用圖片Logo) --- */
+        .branding-section {
+            display: flex; align-items: center; 
+            justify-content: flex-start; /* 改為靠左對齊 */
+            padding: 8px 12px; /* 縮小內距 */
+            background: var(--win-gray);
+            border-bottom: 1px solid var(--win-gray-dark);
+            gap: 15px; /* Logo 與文字的間距 */
+        }
+
+        /* 新的圖片 Logo 樣式 */
+        .win98-real-logo {
+            height: 60px; /* 設定合適的高度，讓它看起來精緻 */
+            width: auto;
+            display: block;
+        }
+
+        /* Win Python 文字樣式調整 */
+        .brand-title-new {
+            font-family: "Arial Black", "Impact", sans-serif; 
+            font-size: 28px; /* 稍微縮小一點 */
+            font-style: italic; font-weight: 900;
+            color: black; text-shadow: 1px 1px 0 white;
+            letter-spacing: -1px; line-height: 1;
+            margin-top: 10px; /* 微調垂直位置 */
+        }
+
+        /* (已移除所有廣告相關的 CSS) */
+
+        /* --- 主體佈局 (維持不變) --- */
+        .main-body { flex: 1; display: flex; padding: 6px; gap: 6px; overflow: hidden; border-top: 1px solid var(--win-light); border-left: 1px solid var(--win-light); border-right: 1px solid var(--win-gray-dark); border-bottom: 1px solid var(--win-gray-dark);}
+
+        .sidebar {
+            width: 210px; background: white; border: 2px inset var(--win-light);
+            overflow-y: auto; padding: 4px; flex-shrink: 0;
+        }
+        .win-folder {
+            width: 14px; height: 10px; background: #ffcc00; border: 1px solid #886600;
+            position: relative; margin-right: 6px; border-radius: 1px;
+        }
+        .win-folder::before {
+            content:''; position:absolute; top:-3px; left:0; width:7px; height:3px;
+            background:inherit; border-top:1px solid #886600; border-left:1px solid #886600; border-right:1px solid #886600; border-radius: 2px 2px 0 0;
+        }
+        .nav-item { padding: 4px 2px; cursor: pointer; display: flex; align-items: center; color: black; }
+        .nav-item:hover span { color: var(--win-link-blue); text-decoration: underline; }
+        .nav-item.active { background: var(--win-title-blue-1); color: white; }
+        .nav-item.active:hover span { color: white; text-decoration: none; }
+        .nav-item.active .win-folder { border-color: white; }
+        .done-mark { margin-left: auto; font-weight: bold; color: #008000; visibility: hidden; }
+        .nav-item.completed .done-mark { visibility: visible; }
+
+        .content-area { flex: 1; display: flex; gap: 6px; }
+        .lesson-view { flex: 1; background: white; border: 2px inset var(--win-light); padding: 15px; overflow-y: auto; }
+        .compiler-view { width: 48%; background: var(--win-gray); border: 2px inset var(--win-light); display: flex; flex-direction: column; }
+
+        button.classic {
+            background: var(--win-gray); border: 2px outset var(--win-light);
+            padding: 3px 10px; color: black; font-family: inherit; font-size: 11px; cursor: pointer;
+        }
+        button.classic:active { border-style: inset; padding: 4px 9px 2px 11px; }
+        button.classic:disabled { color: var(--win-gray-dark); text-shadow: 1px 1px 0 var(--win-light); }
+
+        h2 { margin-top: 0; border-bottom: 1px solid var(--win-gray-dark); color: black; font-size: 16px; }
+        h3 { font-size: 14px; color: #000080; margin-bottom: 5px; }
+        
+        .desc-box { background: #ffffe1; border: 1px solid black; padding: 10px; margin-bottom: 15px; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); line-height: 1.5; }
+        .quiz-card { border: 1px solid var(--win-gray-darker); background: var(--win-gray); padding: 8px; margin-bottom: 8px; box-shadow: 1px 1px 0 white inset; }
+        .quiz-loading { padding: 10px; color: var(--win-gray-dark); font-style: italic; }
+
+        pre { background: #000; color: #0f0; padding: 5px; border: 1px inset; font-family: monospace; white-space: pre-wrap; }
+        code { background: #eee; padding: 0 4px; border: 1px solid #ccc; font-family: monospace; }
+
+        .status-bar {
+            border-top: 1px solid var(--win-light); border-bottom: 1px solid var(--win-gray-dark);
+            padding: 2px 4px; font-size: 11px; color: black; display: flex; justify-content: space-between;
+            background: var(--win-gray);
+        }
+        .status-panel { border: 1px inset var(--win-light); padding: 1px 4px; flex: 1; }
+        .status-gripper {
+            width: 15px; margin-left: 4px; border: 1px inset var(--win-light);
+            background-image: repeating-linear-gradient(-45deg, var(--win-gray), var(--win-gray) 2px, var(--win-light) 2px, var(--win-light) 3px, var(--win-gray-dark) 3px, var(--win-gray-dark) 4px);
+        }
+
     </style>
 </head>
-<body onload="brython()">
+<body>
 
-    <div id="loading-overlay">正在讀取學習進度...</div>
-
-    <div class="container">
-        <div class="col col-left">
-            <h2>📚 學習地圖</h2>
-            <div id="outline-list"></div>
-        </div>
-
-        <div class="col col-center">
-            <h2>🤖 AI 助教 (Gemini 2.5)</h2>
-            <div class="chat-container" id="chat-box">
-                <div class="msg ai">你好！我是 Python 學習助教。選擇左邊的主題，我們可以開始討論，或者直接在下方問我程式問題（我會自動讀取你右邊寫的程式碼喔！）。</div>
-            </div>
-            <div class="input-area">
-                <input type="text" id="ai-input" placeholder="問問 AI (例如: 這段程式碼哪裡錯了?)..." onkeypress="handleKeyPress(event)">
-                <button class="btn btn-send" onclick="askAI()" id="btn-ask">發送</button>
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
-
-            <h2>📝 學習心得</h2>
-            <textarea id="note-input" class="note-box" placeholder="點選左側主題後，在此記錄心得..."></textarea>
-            <button class="btn btn-save" onclick="saveNote()" id="btn-save-note">儲存心得</button>
-        </div>
-
-        <div class="col col-right">
-            <textarea id="editor"># Python 練習區
-print("Hello, Python!")
-
-for i in range(5):
-    print("數到:", i)
-</textarea>
-            <button class="btn btn-run" id="run-btn">▶ 執行程式碼 (Run)</button>
-            <pre id="output">執行結果將顯示於此...</pre>
+<div class="window">
+    <div class="title-bar">
+        <span>Python Learning System 98 (Dynamic DB)</span>
+        <div style="display:flex;">
+            <div class="win-control-btn">_</div>
+            <div class="win-control-btn">□</div>
+            <div class="win-control-btn" style="font-weight:bold;">X</div>
         </div>
     </div>
+    
+    <div class="toolbar">
+        <span>Address:</span>
+        <input type="text" class="address-bar" id="gasUrlInput" value="https://script.google.com/macros/s/AKfycbwS3DBMgCzw322ZNspbcJ64a2dgbSqgfUH-RRvvaYFDshbIK_9cs4HlbFWmD1VsPC9pKw/exec">
+        <button class="classic" onclick="fetchData()">    GO    </button>
+        <div style="flex:1;"></div>
+        <button class="classic" id="syncBtn" onclick="syncToCloud()" style="display:flex; align-items:center; gap:4px;">
+            <img src="https://cdn-icons-png.flaticon.com/128/482/482459.png" width="14" style="filter: grayscale(100%);"> 
+            Save
+        </button>
+    </div>
 
-    <script>
-        // ============================================
-        // 設定區：請將下方的網址換成您的 Web App URL
-        // (這是您上次提供的網址，如果這不是最新的，請手動替換)
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbweMiuhVjiWlqAtqYlI1cu6qOo13nK7y5V7FZgwTSRGzIu1rG30YkM19aGi1J_YlUWd/exec"; 
-        // ============================================
+    <div class="branding-section">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/archive/c/c1/20170726054839%21Windows_98_logo.svg" 
+             alt="Windows 98 Logo" 
+             class="win98-real-logo">
+        
+        <div class="brand-title-new">Win Python</div>
+    </div>
 
-        let learningData = [];
-        let currentTopicId = null;
+    <div class="main-body">
+        <div class="sidebar" id="sidebar">
+            <div style="padding:10px; color:#666;">Connecting to server to fetch folder list...</div>
+        </div>
+        
+        <div class="content-area">
+            <div class="lesson-view" id="contentPanel">
+                <div style="text-align:center; padding-top:50px;">
+                    <img src="https://cdn-icons-png.flaticon.com/128/808/808398.png" width="64" style="filter:grayscale(80%); margin-bottom:20px;"><br>
+                    <b>Connecting to Cloud Database...</b><br>Please wait while we download the lesson plan.
+                </div>
+            </div>
+            
+            <div class="compiler-view">
+                <div style="color:white; background:var(--win-title-blue-1); padding:2px 4px; font-weight:bold; font-family:monospace; font-size:11px; display:flex; align-items:center;">
+                    <span style="margin-right:4px;">>_</span> MS-DOS Prompt - python.exe
+                </div>
+                <iframe src="https://trinket.io/embed/python3/3d8d7ce66b?outputOnly=false&runOption=run&runMode=console" 
+                        width="100%" height="100%" frameborder="0" style="background:black;"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <div class="status-panel" id="statusMsg">Dialing...</div>
+        <div class="status-panel" style="width:100px; text-align:right;">Local Intranet</div>
+        <div class="status-gripper"></div>
+    </div>
+</div>
 
-        // 1. 初始化：載入資料
-        window.addEventListener('DOMContentLoaded', () => {
-            if (GAS_URL.includes("您的_GAS")) {
-                alert("請記得修改 index.html 中的 GAS_URL 變數！");
-                document.getElementById('loading-overlay').style.display = 'none';
-                return;
+<script>
+    // --- JS 功能維持不變 (v10.0 版邏輯) ---
+    let roadmap = []; 
+    let dbQuestions = []; 
+    let currentChapterIndex = 0;
+
+    function init() {
+        fetchData(); 
+    }
+
+    function fetchData() {
+        const gasUrl = document.getElementById('gasUrlInput').value;
+        const status = document.getElementById('statusMsg');
+        
+        status.innerText = "Downloading data pack...";
+        
+        fetch(gasUrl)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Data Received:", data);
+            
+            if (data.lessons && data.lessons.length > 0) {
+                roadmap = data.lessons;
+            } else {
+                alert("Warning: No lessons found in 'Lessons' sheet.");
             }
-            fetchData();
+
+            if (data.questions) {
+                dbQuestions = data.questions;
+            }
+
+            status.innerText = `Online. (${roadmap.length} units, ${dbQuestions.length} questions)`;
+            
+            renderSidebar();
+            loadLocalProgress(); 
+            
+            if(roadmap.length > 0) {
+                renderContent(0);
+            } else {
+                document.getElementById('contentPanel').innerHTML = "No content loaded. Please check your Google Sheet.";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            status.innerText = "Connection Failed.";
+            document.getElementById('contentPanel').innerHTML = `<div style='color:red; font-weight:bold;'>Error connecting to Google Sheet.<br>Check your URL and Sheet permissions.<br>Error: ${err}</div>`;
+        });
+    }
+
+    function renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.innerHTML = '<div style="padding:2px 4px; font-weight:bold; border-bottom:1px solid var(--win-gray-dark); margin-bottom:4px;">My Computer</div>';
+        
+        roadmap.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'nav-item';
+            div.id = `nav-${item.id}`;
+            div.innerHTML = `<div class="win-folder"></div> <span>${item.title}</span> <span class="done-mark">✔</span>`;
+            div.onclick = () => renderContent(index);
+            sidebar.appendChild(div);
+        });
+    }
+
+    function renderContent(index) {
+        currentChapterIndex = index;
+        const item = roadmap[index];
+        
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const activeNav = document.getElementById(`nav-${item.id}`);
+        if(activeNav) activeNav.classList.add('active');
+        
+        const panel = document.getElementById('contentPanel');
+        
+        const chapterQuestions = dbQuestions.filter(q => q.chapterId === item.id);
+
+        let quizHtml = '';
+        if (chapterQuestions.length === 0) {
+            quizHtml = '<div class="quiz-loading">No questions for this unit yet.</div>';
+        } else {
+            chapterQuestions.forEach((q, idx) => {
+                let opts = '';
+                q.options.forEach((opt, optIdx) => {
+                    opts += `<label style="display:block; cursor:pointer; margin-bottom:2px;"><input type="radio" name="q-${idx}" value="${optIdx}"> ${opt}</label>`;
+                });
+                
+                quizHtml += `
+                    <div class="quiz-card">
+                        <span style="font-family:monospace; font-weight:bold;">[${q.level}]</span> 
+                        <strong>${q.q}</strong>
+                        <div style="margin:5px 0; border:1px inset var(--win-light); padding:5px; background:white;">${opts}</div>
+                        <button class="classic" onclick="checkAns(this, ${q.ans})">Submit Answer</button>
+                        <span style="margin-left:10px; font-weight:bold; font-family:monospace;"></span>
+                    </div>
+                `;
+            });
+        }
+
+        panel.innerHTML = `
+            <h2>${item.title}</h2>
+            
+            <div class="desc-box">
+                <img src="https://cdn-icons-png.flaticon.com/128/761/761757.png" width="16" style="vertical-align:middle; margin-right:5px; filter:grayscale(100%);">
+                ${item.content}
+            </div>
+            
+            <h3 style="border-bottom:1px solid var(--win-gray-dark); color:black; background:var(--win-gray); padding:2px;">Quiz Explorer</h3>
+            <div style="background:var(--win-gray); border:1px inset var(--win-light); padding:5px; max-height: 400px; overflow-y:auto;">
+                ${quizHtml}
+            </div>
+
+            <div style="margin-top:20px;">
+                <fieldset style="border:1px solid var(--win-gray-dark); padding:5px;">
+                    <legend>User Notes</legend>
+                    <textarea id="note-${item.id}" oninput="saveLocal('${item.id}')" style="width:100%; height:50px; font-family:monospace; border:2px inset var(--win-light);"></textarea>
+                    <div style="margin-top:5px;">
+                        <input type="checkbox" id="check-${item.id}" onchange="saveLocal('${item.id}')" style="vertical-align:middle;">
+                        <label for="check-${item.id}" style="vertical-align:middle; cursor:pointer;">Mark Unit as Completed</label>
+                    </div>
+                </fieldset>
+            </div>
+        `;
+        
+        restorePageData(item.id);
+    }
+
+    window.checkAns = function(btn, correctIdx) {
+        const parent = btn.parentElement;
+        const selected = parent.querySelector('input:checked');
+        const span = parent.querySelector('span:last-child');
+        
+        if(!selected) {
+            span.innerText = "Selection required."; span.style.color = "red"; return;
+        }
+        if(parseInt(selected.value) === correctIdx) {
+            span.innerText = "Correct OK."; span.style.color = "blue";
+        } else {
+            span.innerText = "Incorrect."; span.style.color = "red";
+        }
+    }
+
+    function saveLocal(id) {
+        const checked = document.getElementById(`check-${id}`).checked;
+        const note = document.getElementById(`note-${id}`).value;
+        const nav = document.getElementById(`nav-${id}`);
+        if(checked) {
+            if(nav) nav.classList.add('completed');
+        } else {
+            if(nav) nav.classList.remove('completed');
+        }
+        const data = { checked, note };
+        localStorage.setItem(`py_win98se_v10_${id}`, JSON.stringify(data));
+    }
+
+    function loadLocalProgress() {
+        roadmap.forEach(item => {
+            const stored = localStorage.getItem(`py_win98se_v10_${item.id}`);
+            if(stored) {
+                const d = JSON.parse(stored);
+                if(d.checked) {
+                    const nav = document.getElementById(`nav-${item.id}`);
+                    if(nav) nav.classList.add('completed');
+                }
+            }
+        });
+    }
+
+    function restorePageData(id) {
+        const stored = localStorage.getItem(`py_win98se_v10_${id}`);
+        if(stored) {
+            const d = JSON.parse(stored);
+            const chk = document.getElementById(`check-${id}`);
+            const txt = document.getElementById(`note-${id}`);
+            if(chk) chk.checked = d.checked;
+            if(txt) txt.value = d.note;
+        }
+    }
+
+    window.syncToCloud = function() {
+        const url = document.getElementById('gasUrlInput').value;
+        const btn = document.getElementById('syncBtn');
+        const status = document.getElementById('statusMsg');
+        
+        btn.disabled = true;
+        status.innerText = "Sending data to server...";
+
+        const payload = roadmap.map(item => {
+            const stored = localStorage.getItem(`py_win98se_v10_${item.id}`);
+            const d = stored ? JSON.parse(stored) : { checked: false, note: "" };
+            return { id: item.id, title: item.title, checked: d.checked, note: d.note };
         });
 
-        function fetchData() {
-            fetch(GAS_URL)
-                .then(res => res.json())
-                .then(data => {
-                    learningData = data;
-                    renderList();
-                    document.getElementById('loading-overlay').style.display = 'none';
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert("讀取失敗，請檢查網路或 GAS 部署設定。");
-                    document.getElementById('loading-overlay').innerText = "讀取失敗，請重新整理。";
-                });
-        }
+        fetch(url, {
+            method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(() => {
+            status.innerText = "Data transfer complete."; btn.disabled = false;
+            alert("Information Saved Successfully.");
+        }).catch(err => {
+            status.innerText = "Error during transfer."; btn.disabled = false;
+            alert("Critical Error: " + err);
+        });
+    }
 
-        // 2. 渲染左側列表
-        function renderList() {
-            const listDiv = document.getElementById('outline-list');
-            listDiv.innerHTML = '';
-            
-            let currentSec = '';
-            learningData.forEach(item => {
-                // 加入章節標題
-                if (item.section !== currentSec) {
-                    const secTitle = document.createElement('div');
-                    secTitle.className = 'section-title';
-                    secTitle.innerText = item.section;
-                    listDiv.appendChild(secTitle);
-                    currentSec = item.section;
-                }
-
-                // 加入細項
-                const row = document.createElement('div');
-                row.className = 'topic-item';
-                row.dataset.id = item.id;
-                
-                // 點擊整行切換筆記 (除了 Checkbox)
-                row.onclick = (e) => {
-                    if (e.target.type !== 'checkbox') selectTopic(item.id);
-                };
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = item.done;
-                checkbox.onclick = (e) => toggleDone(item.id, e.target.checked);
-
-                const text = document.createElement('span');
-                text.innerText = item.topic;
-
-                row.appendChild(checkbox);
-                row.appendChild(text);
-                listDiv.appendChild(row);
-            });
-        }
-
-        // 3. 選擇主題
-        function selectTopic(id) {
-            currentTopicId = id;
-            
-            // UI 更新
-            document.querySelectorAll('.topic-item').forEach(el => el.classList.remove('active'));
-            document.querySelector(`.topic-item[data-id='${id}']`).classList.add('active');
-
-            // 載入筆記
-            const item = learningData.find(d => d.id == id);
-            document.getElementById('note-input').value = item.note || "";
-        }
-
-        // 4. 打勾完成
-        function toggleDone(id, isDone) {
-            const item = learningData.find(d => d.id == id);
-            item.done = isDone;
-
-            fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 避免 CORS preflight
-                body: JSON.stringify({ action: 'toggle', id: id, done: isDone })
-            });
-        }
-
-        // 5. 儲存筆記
-        function saveNote() {
-            if (!currentTopicId) return alert("請先從左側選擇一個主題！");
-            
-            const note = document.getElementById('note-input').value;
-            const btn = document.getElementById('btn-save-note');
-            
-            btn.innerText = "儲存中...";
-            btn.disabled = true;
-
-            // 更新本地數據
-            const item = learningData.find(d => d.id == currentTopicId);
-            item.note = note;
-
-            fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'save_note', id: currentTopicId, note: note })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.innerText = "儲存心得";
-                btn.disabled = false;
-                if(data.status !== 'success') alert("儲存失敗");
-            });
-        }
-
-        // 6. AI 互動 (已修正：現在會讀取代碼了！)
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') askAI();
-        }
-
-        function askAI() {
-            const input = document.getElementById('ai-input');
-            const chatBox = document.getElementById('chat-box');
-            const btn = document.getElementById('btn-ask');
-            
-            // ★★★ 新增：抓取右邊編譯器的程式碼內容 ★★★
-            const editor = document.getElementById('editor'); 
-            
-            const text = input.value.trim();
-            if (!text) return;
-
-            // UI 顯示：只顯示使用者的問題 (保持聊天視窗乾淨)
-            chatBox.innerHTML += `<div class="msg user">${text}</div>`;
-            input.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            // 鎖定按鈕
-            btn.disabled = true;
-            btn.innerText = "讀取並思考中...";
-            
-            const loadingMsg = document.createElement('div');
-            loadingMsg.className = 'msg ai';
-            loadingMsg.innerText = "Gemini 2.5 正在閱讀你的程式碼並思考...";
-            chatBox.appendChild(loadingMsg);
-
-            // ★★★ 關鍵魔法：把「問題」跟「程式碼」打包在一起 ★★★
-            const codeContent = editor.value;
-            const fullMessage = `
-            ${text}
-
-            ---
-            (以下是使用者目前在編譯器中撰寫的 Python 程式碼，請參考)
-            ${codeContent}
-            `;
-
-            // 發送請求
-            fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'ask_ai', message: fullMessage })
-            })
-            .then(res => res.json())
-            .then(data => {
-                chatBox.removeChild(loadingMsg);
-                // 處理換行
-                const reply = data.reply.replace(/\n/g, '<br>');
-                chatBox.innerHTML += `<div class="msg ai">${reply}</div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            })
-            .catch(err => {
-                chatBox.removeChild(loadingMsg);
-                chatBox.innerHTML += `<div class="msg ai" style="color:red">連線錯誤，請重試。</div>`;
-                console.error(err);
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerText = "發送";
-            });
-        }
-    </script>
-
-    <script type="text/python">
-        from browser import document, alert
-        import sys
-
-        # 自定義輸出類別，將 stdout 轉向到網頁上的 div
-        class Output:
-            def write(self, *args):
-                document["output"].text += args[0]
-                # 自動捲動到底部
-                document["output"].scrollTop = document["output"].scrollHeight
-            def flush(self):
-                pass
-
-        sys.stdout = Output()
-        sys.stderr = Output()
-
-        def run_code(ev):
-            document["output"].text = "=== 執行開始 ===\n" 
-            user_code = document["editor"].value
-            try:
-                exec(user_code)
-            except Exception as e:
-                print(f"\n錯誤: {e}")
-            print("\n=== 執行結束 ===")
-
-        document["run-btn"].bind("click", run_code)
-    </script>
+    init();
+</script>
 </body>
 </html>

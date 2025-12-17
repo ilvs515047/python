@@ -1,0 +1,14 @@
+# 請在這裡完成您的練習：列表中的元素搜尋
+#找出 target_value (也就是 30) 在 my_list 中的索引位置。如果列表中沒有 30，則印出相應的提示訊息。
+
+my_list = [10, 20, 30, 40, 50]
+target_value = 30
+
+for i in range(4):
+  if target_value == my_list[i]:
+    x = i+1
+    print("您要找的數字{}在數列中的第:{}的位置".format(target_value, x))
+
+
+
+

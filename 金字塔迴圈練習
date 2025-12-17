@@ -1,0 +1,7 @@
+#金字塔迴圈練習
+i = " "
+a = "*"
+v = 5
+for k in range(v):
+  print(i*(v),(k+k+1)*a)
+  v = v-1

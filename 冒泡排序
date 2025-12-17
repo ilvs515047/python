@@ -1,0 +1,6 @@
+a = [10, 5, 23, 15, 8, 30, 2]
+for i in range(7):
+  for j in range(7):
+    if a[i]> a[j]:
+      a[i],a[j] = a[j],a[i]
+print(a),"最大值",a[0]

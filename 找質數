@@ -10,3 +10,18 @@ if z == 2:
   print("是質數")
 else:
   print("不是質數")
+
+-------------
+找出範圍內所有質數
+
+o = 18
+for j in range(1,o+1):
+  n = j
+  z = 0
+  for i in range(1,n+1):
+
+    k = n % i 
+    if k == 0:
+      z = z+1 
+  if z == 2:
+    print(n)

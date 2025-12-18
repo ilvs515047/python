@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN 卷積運算視覺化 (Sobel/Convolution)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Roboto+Mono:wght@500&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0;
+        }
+
+        .grid-cell {
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        /* Input Grid Styling */
+        .input-cell {
+            background-color: #334155;
+            border: 1px solid #475569;
+        }
+        
+        /* Kernel Styling */
+        .kernel-cell {
+            background-color: #f59e0b; /* Amber 500 */
+            color: #1e293b;
+            font-weight: bold;
+            border: 1px solid #d97706;
+        }
+
+        /* Output Grid Styling */
+        .output-cell {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #94a3b8;
+        }
+        .output-cell.calculated {
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        /* Animations / Highlights */
+        .highlight-input {
+            border: 2px solid #38bdf8 !important; /* Sky 400 */
+            background-color: rgba(56, 189, 248, 0.2) !important;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .highlight-output {
+            border: 2px solid #22c55e !important; /* Green 500 */
+            background-color: rgba(34, 197, 94, 0.2) !important;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .multiplier-anim {
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .control-btn {
+            transition: all 0.2s;
+        }
+        .control-btn:active {
+            transform: translateY(2px);
+        }
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4">
+
+    <!-- Header -->
+    <header class="text-center mb-8 max-w-4xl">
+        <h1 class="text-3xl md:text-4xl font-bold text-sky-400 mb-2">卷積神經網路 (CNN) 運算視覺化</h1>
+        <p class="text-slate-400 text-sm md:text-base">
+            了解電腦如何透過「卷積核 (Kernel)」處理影像。選擇不同的濾鏡（如 Sobel）來觀察數學如何變成視覺特徵。
+        </p>
+    </header>
+
+    <!-- Controls -->
+    <div class="bg-slate-800 p-4 rounded-xl shadow-lg mb-8 w-full max-w-5xl flex flex-wrap gap-4 items-center justify-between border border-slate-700">
+        <div class="flex gap-2 flex-wrap">
+            <div class="flex flex-col">
+                <label class="text-xs text-slate-400 mb-1">選擇濾鏡 (Kernel)</label>
+                <select id="kernelSelect" class="bg-slate-700 border border-slate-600 text-white text-sm rounded px-3 py-2 outline-none focus:border-sky-500">
+                    <option value="sobelHorizontal">Sobel 水平邊緣檢測 (Horizontal)</option>
+                    <option value="sobelVertical">Sobel 垂直邊緣檢測 (Vertical)</option>
+                    <option value="sharpen">銳化 (Sharpen)</option>
+                    <option value="blur">模糊 (Blur)</option>
+                    <option value="outline">輪廓 (Outline)</option>
+                </select>
+            </div>
+            
+            <div class="flex flex-col">
+                 <label class="text-xs text-slate-400 mb-1">播放速度</label>
+                 <select id="speedSelect" class="bg-slate-700 border border-slate-600 text-white text-sm rounded px-3 py-2 outline-none focus:border-sky-500">
+                    <option value="1500">慢 (逐步詳解)</option>
+                    <option value="500" selected>中等</option>
+                    <option value="100">快</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button id="stepBtn" class="control-btn bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                單步執行
+            </button>
+            <button id="playBtn" class="control-btn bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 shadow-lg shadow-sky-900/50">
+                <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-1.5a1 1 0 000-1.664l-3-1.5z" clip-rule="evenodd" /></svg>
+                <span id="playText">自動播放</span>
+            </button>
+            <button id="resetBtn" class="control-btn bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-medium">
+                重置
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Visualization Area -->
+    <div class="flex flex-col lg:flex-row gap-8 items-start justify-center w-full max-w-6xl">
+        
+        <!-- Section 1: Input Image -->
+        <div class="flex flex-col items-center">
+            <h3 class="text-lg font-bold text-slate-200 mb-2">輸入圖片 (Input)</h3>
+            <div class="text-xs text-slate-400 mb-2">原始像素值 (0-255)</div>
+            <!-- Grid Container -->
+            <div id="inputGrid" class="grid grid-cols-6 gap-1 p-2 bg-slate-800 rounded-lg border border-slate-700 shadow-inner">
+                <!-- Cells generated by JS -->
+            </div>
+            <div class="mt-4 text-xs text-slate-400 w-48 text-center">
+                這是一個簡單的 6x6 像素矩陣，代表一張黑白圖片的一部分。
+            </div>
+        </div>
+
+        <!-- Section 2: The Kernel & Math -->
+        <div class="flex flex-col items-center justify-center pt-8 lg:pt-20">
+            
+            <!-- Operation Icon -->
+            <div class="text-3xl font-bold text-sky-500 mb-4">✕</div>
+
+            <h3 class="text-lg font-bold text-amber-400 mb-2">卷積核 (Kernel)</h3>
+            <div id="kernelName" class="text-xs text-amber-200/80 mb-2">Sobel Horizontal</div>
+            
+            <!-- Kernel Grid -->
+            <div id="kernelGrid" class="grid grid-cols-3 gap-1 p-2 bg-slate-800 rounded-lg border border-amber-500/30 shadow-lg mb-6">
+                <!-- Cells generated by JS -->
+            </div>
+
+            <!-- Calculation Panel -->
+            <div class="bg-slate-800 p-4 rounded-lg border border-slate-600 w-64 shadow-xl">
+                <div class="text-xs text-slate-400 mb-2 border-b border-slate-700 pb-1">當前運算細節</div>
+                <div id="calcDetail" class="font-mono text-xs leading-relaxed text-slate-300 h-32 overflow-y-auto">
+                    點擊「播放」或「單步執行」開始...
+                </div>
+                <div class="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center">
+                    <span class="text-sm text-slate-400">總和:</span>
+                    <span id="calcResult" class="text-xl font-bold text-green-400">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Output Feature Map -->
+        <div class="flex flex-col items-center">
+            <div class="text-3xl font-bold text-sky-500 mb-4 lg:hidden">⬇</div>
+            <div class="text-3xl font-bold text-sky-500 mb-4 hidden lg:block" style="margin-top: 5rem;">=</div>
+
+            <h3 class="text-lg font-bold text-green-400 mb-2">特徵圖 (Output)</h3>
+            <div class="text-xs text-slate-400 mb-2">卷積後的結果</div>
+            
+            <!-- Output Grid -->
+            <div id="outputGrid" class="grid grid-cols-4 gap-1 p-2 bg-slate-800 rounded-lg border border-slate-700 shadow-inner">
+                <!-- Cells generated by JS. Note: 6x6 input with 3x3 kernel valid padding = 4x4 output -->
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-800/50 rounded border border-slate-700 w-56">
+                <h4 class="text-sm font-bold text-slate-200 mb-1">解釋：</h4>
+                <p id="explanationText" class="text-xs text-slate-400 leading-relaxed">
+                    等待開始...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-12 flex flex-wrap gap-6 justify-center text-sm text-slate-400">
+        <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-slate-600 border border-slate-400"></div> 低數值 (暗)
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-white border border-slate-400"></div> 高數值 (亮)
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-4 h-4 border-2 border-sky-400 bg-sky-400/20"></div> 當前輸入範圍
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-4 h-4 border-2 border-green-500 bg-green-500/20"></div> 當前計算結果
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & State ---
+        const GRID_SIZE = 6;
+        const KERNEL_SIZE = 3;
+        const OUTPUT_SIZE = GRID_SIZE - KERNEL_SIZE + 1; // 4x4 for valid padding
+
+        let inputData = [];
+        let outputData = [];
+        let currentKernel = [];
+        
+        let animationId = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        const totalSteps = OUTPUT_SIZE * OUTPUT_SIZE;
+
+        // Kernels Definitions
+        const KERNELS = {
+            sobelHorizontal: {
+                name: "Sobel 水平 (檢測橫線)",
+                matrix: [
+                    [-1, -2, -1],
+                    [ 0,  0,  0],
+                    [ 1,  2,  1]
+                ],
+                desc: "上方像素乘負數，下方乘正數。如果上下顏色差異大（水平邊緣），結果數值會很大。"
+            },
+            sobelVertical: {
+                name: "Sobel 垂直 (檢測直線)",
+                matrix: [
+                    [-1, 0, 1],
+                    [-2, 0, 2],
+                    [-1, 0, 1]
+                ],
+                desc: "左方像素乘負數，右方乘正數。如果左右顏色差異大（垂直邊緣），結果數值會很大。"
+            },
+            sharpen: {
+                name: "銳化 (Sharpen)",
+                matrix: [
+                    [ 0, -1,  0],
+                    [-1,  5, -1],
+                    [ 0, -1,  0]
+                ],
+                desc: "強化中心像素與周圍像素的差異，使邊緣更清晰。"
+            },
+            blur: {
+                name: "模糊 (Box Blur)",
+                matrix: [
+                    [1/9, 1/9, 1/9],
+                    [1/9, 1/9, 1/9],
+                    [1/9, 1/9, 1/9]
+                ],
+                desc: "取周圍像素的平均值，消除細節與雜訊。"
+            },
+            outline: {
+                name: "輪廓 (Outline)",
+                matrix: [
+                    [-1, -1, -1],
+                    [-1,  8, -1],
+                    [-1, -1, -1]
+                ],
+                desc: "當區域顏色平坦時結果接近 0，只有在邊緣處會有高反應。"
+            }
+        };
+
+        // Initialize Input Data (A simple pattern: A square in the middle)
+        // 0 = Dark, 255 = Bright
+        function generateInputData() {
+            // Creating a shape that has both vertical and horizontal edges
+            const data = [
+                [10, 10, 10, 10, 10, 10],
+                [10, 200, 200, 200, 200, 10],
+                [10, 200, 200, 200, 200, 10],
+                [10, 200, 200, 200, 200, 10],
+                [10, 200, 200, 200, 200, 10],
+                [10, 10, 10, 10, 10, 10]
+            ];
+            return data;
+        }
+
+        // --- DOM Elements ---
+        const inputGridEl = document.getElementById('inputGrid');
+        const kernelGridEl = document.getElementById('kernelGrid');
+        const outputGridEl = document.getElementById('outputGrid');
+        const kernelSelect = document.getElementById('kernelSelect');
+        const calcDetailEl = document.getElementById('calcDetail');
+        const calcResultEl = document.getElementById('calcResult');
+        const explanationEl = document.getElementById('explanationText');
+        const speedSelect = document.getElementById('speedSelect');
+        const kernelNameEl = document.getElementById('kernelName');
+
+        // --- Initialization ---
+        function init() {
+            inputData = generateInputData();
+            
+            // Create Input Grid UI
+            inputGridEl.innerHTML = '';
+            inputData.forEach((row, rIndex) => {
+                row.forEach((val, cIndex) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell input-cell w-8 h-8 md:w-10 md:h-10';
+                    cell.dataset.row = rIndex;
+                    cell.dataset.col = cIndex;
+                    // Visual trick: brightness based on value
+                    const brightness = Math.min(255, Math.max(0, val));
+                    cell.style.backgroundColor = `rgb(${brightness}, ${brightness}, ${brightness})`;
+                    cell.style.color = brightness > 128 ? '#000' : '#fff';
+                    cell.innerText = val;
+                    inputGridEl.appendChild(cell);
+                });
+            });
+
+            // Initialize Output Grid UI (Empty)
+            outputGridEl.innerHTML = '';
+            outputData = Array(OUTPUT_SIZE).fill().map(() => Array(OUTPUT_SIZE).fill(0));
+            
+            for(let r=0; r<OUTPUT_SIZE; r++) {
+                for(let c=0; c<OUTPUT_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell output-cell w-10 h-10 md:w-12 md:h-12';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.innerText = '-';
+                    outputGridEl.appendChild(cell);
+                }
+            }
+
+            loadKernel(kernelSelect.value);
+            resetState();
+        }
+
+        function loadKernel(key) {
+            const kData = KERNELS[key];
+            currentKernel = kData.matrix;
+            kernelNameEl.innerText = kData.name;
+            explanationEl.innerText = kData.desc;
+            
+            // Render Kernel Grid
+            kernelGridEl.innerHTML = '';
+            currentKernel.forEach(row => {
+                row.forEach(val => {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell kernel-cell w-8 h-8 md:w-10 md:h-10';
+                    // Format float for blur
+                    cell.innerText = Number.isInteger(val) ? val : val.toFixed(2);
+                    kernelGridEl.appendChild(cell);
+                });
+            });
+        }
+
+        // --- Core Logic ---
+
+        function calculateStep(stepIndex) {
+            const outRow = Math.floor(stepIndex / OUTPUT_SIZE);
+            const outCol = stepIndex % OUTPUT_SIZE;
+            
+            // Clear previous highlights
+            document.querySelectorAll('.highlight-input').forEach(el => el.classList.remove('highlight-input'));
+            document.querySelectorAll('.highlight-output').forEach(el => el.classList.remove('highlight-output'));
+
+            // Highlight Output Cell
+            const outputCell = outputGridEl.children[stepIndex];
+            outputCell.classList.add('highlight-output');
+
+            let sum = 0;
+            let calculationHTML = '';
+
+            // Convolve
+            for (let kr = 0; kr < KERNEL_SIZE; kr++) {
+                for (let kc = 0; kc < KERNEL_SIZE; kc++) {
+                    const inputRow = outRow + kr;
+                    const inputCol = outCol + kc;
+                    
+                    const inputVal = inputData[inputRow][inputCol];
+                    const kernelVal = currentKernel[kr][kc];
+                    
+                    const product = inputVal * kernelVal;
+                    sum += product;
+
+                    // Highlight corresponding Input Cell
+                    const inputCellIndex = inputRow * GRID_SIZE + inputCol;
+                    inputGridEl.children[inputCellIndex].classList.add('highlight-input');
+
+                    // Add to calculation log
+                    // Formatting for readability
+                    const kDisplay = Number.isInteger(kernelVal) ? kernelVal : kernelVal.toFixed(2);
+                    
+                    // Highlight non-zero contributions
+                    const style = Math.abs(product) > 0 ? 'color: #38bdf8; font-weight:bold;' : 'color: #64748b;';
+                    calculationHTML += `<div style="${style}">[${inputRow},${inputCol}] ${inputVal} × ${kDisplay} = ${Number.isInteger(product)?product:product.toFixed(1)}</div>`;
+                }
+            }
+            
+            // Update UI with calculation details
+            calcDetailEl.innerHTML = calculationHTML;
+            
+            // Final Value Processing (Clamp 0-255 usually, but for visualization raw allows seeing negative edges)
+            // For standard image processing, we usually clamp or take absolute value for Sobel.
+            // Here let's show the raw sum, but visual color clamps.
+            
+            const displaySum = Number.isInteger(sum) ? sum : sum.toFixed(1);
+            calcResultEl.innerText = displaySum;
+
+            // Update Output Cell content and color
+            outputCell.innerText = Math.round(sum);
+            outputCell.classList.add('calculated');
+            
+            // Color map for output (normalize for display)
+            // We take absolute value for grayscale visualization usually
+            const absSum = Math.abs(sum);
+            const clampedVal = Math.min(255, Math.max(0, absSum));
+            
+            // If negative (e.g. outline/sobel), it might be black, if positive white.
+            // Let's use a heatmap logic for clarity? Or standard grayscale.
+            // Standard grayscale:
+            outputCell.style.backgroundColor = `rgb(${clampedVal}, ${clampedVal}, ${clampedVal})`;
+            outputCell.style.color = clampedVal > 128 ? '#000' : '#fff';
+            
+            // Special text explanation update
+            if (kernelSelect.value.includes('sobel')) {
+                if (Math.abs(sum) > 100) {
+                    explanationEl.innerText = `偵測到邊緣！數值 ${Math.round(sum)} 表示這裡顏色變化劇烈。`;
+                } else {
+                    explanationEl.innerText = `平坦區域。數值接近 0，表示周圍顏色很接近。`;
+                }
+            }
+        }
+
+        // --- Controls ---
+
+        function stopAnimation() {
+            isPlaying = false;
+            clearTimeout(animationId);
+            document.getElementById('playText').innerText = "自動播放";
+            document.getElementById('playIcon').innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-1.5a1 1 0 000-1.664l-3-1.5z" clip-rule="evenodd" />';
+        }
+
+        function play() {
+            isPlaying = true;
+            document.getElementById('playText').innerText = "暫停";
+            document.getElementById('playIcon').innerHTML = '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />';
+            loop();
+        }
+
+        function loop() {
+            if (!isPlaying) return;
+            
+            if (currentStep >= totalSteps) {
+                stopAnimation();
+                return;
+            }
+
+            calculateStep(currentStep);
+            currentStep++;
+
+            const speed = parseInt(speedSelect.value);
+            animationId = setTimeout(loop, speed);
+        }
+
+        function resetState() {
+            stopAnimation();
+            currentStep = 0;
+            // Clear Output Grid Visuals
+            Array.from(outputGridEl.children).forEach(cell => {
+                cell.innerText = '-';
+                cell.style.backgroundColor = '#1e293b';
+                cell.style.color = '#94a3b8';
+                cell.classList.remove('highlight-output', 'calculated');
+            });
+            // Clear Inputs highlights
+            document.querySelectorAll('.highlight-input').forEach(el => el.classList.remove('highlight-input'));
+            calcDetailEl.innerText = '準備就緒';
+            calcResultEl.innerText = '0';
+        }
+
+        // Event Listeners
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                if (currentStep >= totalSteps) resetState();
+                play();
+            }
+        });
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            stopAnimation();
+            if (currentStep >= totalSteps) resetState();
+            calculateStep(currentStep);
+            currentStep++;
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', resetState);
+
+        kernelSelect.addEventListener('change', (e) => {
+            loadKernel(e.target.value);
+            resetState();
+        });
+
+        // Initialize on load
+        init();
+
+    </script>
+</body>
+</html>

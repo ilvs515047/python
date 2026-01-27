@@ -3,32 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業 WebCam 檢測工具</title>
+    <title>專業檢測 - 亮度曝光控制版</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #2c3e50; /* 改深色背景，對比度較好 */
-            color: white;
-            margin: 0;
             padding: 20px;
         }
-
-        h1 { margin-bottom: 10px; }
 
         .container {
             background: #34495e;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 800px; /* 加寬畫面 */
+            max-width: 800px;
             width: 100%;
+            text-align: center;
         }
 
-        /* 影片顯示區域 */
+        /* 視訊視窗 */
         .video-wrapper {
             position: relative;
             width: 100%;
@@ -40,249 +37,300 @@
 
         #videoElement {
             width: 100%;
-            height: auto;
             display: block;
-            /* 預設不鏡像 (工業用途通常看正像) */
-            transform: scaleX(1); 
         }
 
         /* 控制面板 */
-        .controls {
-            margin-top: 15px;
+        .controls-area {
+            margin-top: 20px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        select {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            max-width: 200px;
+        .control-group {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 滑桿樣式 */
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .slider-group label { width: 80px; text-align: right; }
+        .slider-group input { flex-grow: 1; cursor: pointer; }
+        .slider-value { width: 40px; text-align: left; font-family: monospace; }
+
+        /* 停用的樣式 */
+        .disabled {
+            opacity: 0.4;
+            pointer-events: none;
         }
 
         button {
-            padding: 10px 20px;
-            font-size: 15px;
+            padding: 8px 20px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            transition: 0.2s;
-        }
-
-        #startBtn { background-color: #27ae60; color: white; }
-        #startBtn:hover { background-color: #2ecc71; }
-
-        #stopBtn { background-color: #c0392b; color: white; }
-        #stopBtn:hover { background-color: #e74c3c; }
-        #stopBtn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
-
-        #snapBtn { background-color: #2980b9; color: white; }
-        #snapBtn:hover { background-color: #3498db; }
-        #snapBtn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
-
-        /* 鏡像開關 */
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
             font-size: 14px;
-            cursor: pointer;
         }
+        #startBtn { background: #27ae60; color: white; }
+        #stopBtn { background: #c0392b; color: white; }
+        #snapBtn { background: #2980b9; color: white; }
 
-        /* 截圖結果 */
+        .status { color: #f1c40f; margin-top: 10px; font-size: 0.9em; min-height: 20px; }
+        
+        /* 截圖區 */
         .gallery {
             margin-top: 20px;
             display: flex;
-            flex-wrap: wrap;
             gap: 10px;
-            justify-content: center;
+            overflow-x: auto;
+            padding-bottom: 10px;
         }
-
-        .gallery img {
-            width: 160px;
-            border-radius: 4px;
-            border: 2px solid #fff;
-            transition: transform 0.2s;
-        }
-        .gallery img:hover { transform: scale(1.1); }
-
-        /* 狀態訊息 */
-        #statusMsg {
-            color: #f1c40f;
-            font-size: 0.9em;
-            margin-top: 5px;
-            min-height: 20px;
-        }
+        .gallery img { height: 100px; border: 2px solid #fff; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>🔍 專業檢測相機 (自動白平衡版)</h1>
-        
-        <div class="video-wrapper">
-            <video id="videoElement" autoplay playsinline></video>
-        </div>
-        
-        <div id="statusMsg">準備就緒</div>
+<div class="container">
+    <h1>☀️ 亮度與曝光控制 (Auto Exposure)</h1>
 
-        <canvas id="canvas" style="display:none;"></canvas>
+    <div class="video-wrapper">
+        <video id="videoElement" autoplay playsinline></video>
+    </div>
+    <div id="statusMsg" class="status">準備就緒</div>
+    <canvas id="canvas" style="display:none;"></canvas>
 
-        <div class="controls">
-            <select id="cameraSelect">
-                <option value="">載入中...</option>
-            </select>
-
-            <label class="toggle-container">
-                <input type="checkbox" id="mirrorToggle"> 鏡像翻轉
-            </label>
-
-            <button id="startBtn">啟動相機</button>
+    <div class="controls-area">
+        <div class="control-group">
+            <select id="cameraSelect"></select>
+            <label><input type="checkbox" id="mirrorToggle"> 鏡像</label>
+            <button id="startBtn">啟動</button>
             <button id="stopBtn" disabled>關閉</button>
-            <button id="snapBtn" disabled>📸 截圖</button>
+            <button id="snapBtn" disabled>拍照</button>
         </div>
 
-        <div id="gallery" class="gallery"></div>
+        <div class="control-group" id="exposureSection" style="display:none;">
+            <div style="width:100%; text-align:left; padding-left:20px;">
+                <label style="cursor:pointer; font-size:1.1em; font-weight:bold;">
+                    <input type="checkbox" id="autoExposureToggle" checked> ✅ 啟用自動曝光 (Auto Exposure)
+                </label>
+            </div>
+
+            <hr style="width:100%; border:0; border-top:1px solid #555;">
+
+            <div id="compControl" class="slider-group">
+                <label>亮度補償:</label>
+                <input type="range" id="compSlider" step="0.5">
+                <span id="compValue" class="slider-value">0</span>
+            </div>
+            <div style="width:100%; font-size:0.8em; color:#aaa; margin-top:-10px;">
+                *自動模式下，覺得太暗請調高此數值
+            </div>
+
+            <div id="timeControl" class="slider-group disabled">
+                <label>曝光時間:</label>
+                <input type="range" id="timeSlider" step="1">
+                <span id="timeValue" class="slider-value">Auto</span>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const video = document.getElementById('videoElement');
-        const canvas = document.getElementById('canvas');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const snapBtn = document.getElementById('snapBtn');
-        const cameraSelect = document.getElementById('cameraSelect');
-        const mirrorToggle = document.getElementById('mirrorToggle');
-        const gallery = document.getElementById('gallery');
-        const statusMsg = document.getElementById('statusMsg');
-        
-        let stream = null;
+    <div id="gallery" class="gallery"></div>
+</div>
 
-        // 1. 初始化：列出所有可用的相機裝置
-        async function getCameras() {
-            try {
-                // 先請求一次權限，否則 enumerateDevices 可能拿不到標籤名稱
-                await navigator.mediaDevices.getUserMedia({ video: true });
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                
-                cameraSelect.innerHTML = ""; // 清空
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+<script>
+    const video = document.getElementById('videoElement');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const snapBtn = document.getElementById('snapBtn');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const statusMsg = document.getElementById('statusMsg');
+    
+    // 曝光相關元件
+    const exposureSection = document.getElementById('exposureSection');
+    const autoExposureToggle = document.getElementById('autoExposureToggle');
+    
+    const compControl = document.getElementById('compControl');
+    const compSlider = document.getElementById('compSlider');
+    const compValue = document.getElementById('compValue');
 
-                videoDevices.forEach((device, index) => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    option.text = device.label || `攝影機 ${index + 1}`;
-                    cameraSelect.appendChild(option);
-                });
-                
-                statusMsg.innerText = `偵測到 ${videoDevices.length} 個攝影機，請選擇並啟動`;
-            } catch (err) {
-                console.error(err);
-                statusMsg.innerText = "請允許攝影機權限以讀取裝置列表";
-            }
+    const timeControl = document.getElementById('timeControl');
+    const timeSlider = document.getElementById('timeSlider');
+    const timeValue = document.getElementById('timeValue');
+
+    let stream = null;
+    let track = null;
+
+    // 1. 取得相機列表
+    async function init() {
+        try {
+            await navigator.mediaDevices.getUserMedia({ video: true });
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            cameraSelect.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || 'Camera'}</option>`).join('');
+            statusMsg.innerText = `偵測到 ${videoDevices.length} 個裝置`;
+        } catch(e) {
+            statusMsg.innerText = "請允許相機權限";
         }
+    }
+    init();
 
-        // 頁面載入時先執行一次搜尋
-        getCameras();
+    // 2. 啟動相機
+    startBtn.addEventListener('click', async () => {
+        if (stream) stopCamera();
+        
+        const constraints = {
+            video: {
+                deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                // 預設請求連續自動曝光
+                advanced: [{ exposureMode: "continuous" }]
+            }
+        };
 
-        // 2. 啟動相機 (包含白平衡修正核心代碼)
-        startBtn.addEventListener('click', async () => {
-            if (stream) {
-                // 如果已經開啟，先關閉舊的
-                stream.getTracks().forEach(track => track.stop());
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            track = stream.getVideoTracks()[0];
+            
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            snapBtn.disabled = false;
+            
+            // 初始化能力檢查
+            await checkCapabilities();
+
+        } catch (err) {
+            statusMsg.innerText = "啟動失敗: " + err.message;
+        }
+    });
+
+    // 3. 檢查相機支援的曝光功能
+    async function checkCapabilities() {
+        await new Promise(r => setTimeout(r, 500)); // 等待硬體 ready
+        const caps = track.getCapabilities();
+        const settings = track.getSettings();
+
+        console.log("Capabilities:", caps);
+        console.log("Settings:", settings);
+
+        // 判斷是否支援曝光控制
+        if (caps.exposureMode || caps.exposureCompensation || caps.exposureTime) {
+            exposureSection.style.display = 'flex';
+            statusMsg.innerText = "✅ 相機支援曝光控制";
+
+            // 設定「曝光補償」滑桿範圍 (EV)
+            if (caps.exposureCompensation) {
+                compSlider.min = caps.exposureCompensation.min;
+                compSlider.max = caps.exposureCompensation.max;
+                compSlider.step = caps.exposureCompensation.step;
+                compSlider.value = settings.exposureCompensation || 0;
+                compValue.innerText = compSlider.value;
+            } else {
+                compControl.classList.add('disabled');
             }
 
-            const deviceId = cameraSelect.value;
-            const constraints = {
-                video: {
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
-                    width: { ideal: 1920 },  // 嘗試請求 1080p
-                    height: { ideal: 1080 },
-                    // --- 關鍵修改：嘗試強制請求連續白平衡 ---
-                    advanced: [{ whiteBalanceMode: "continuous" }] 
-                }
-            };
-
-            try {
-                statusMsg.innerText = "正在啟動相機並調整設定...";
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-
-                // --- 二次確認：檢查並套用白平衡 ---
-                const track = stream.getVideoTracks()[0];
-                const capabilities = track.getCapabilities();
-
-                if (capabilities.whiteBalanceMode) {
-                    // 如果相機支援，再次強制送出指令
-                    await track.applyConstraints({
-                        advanced: [{ whiteBalanceMode: "continuous" }]
-                    });
-                    statusMsg.innerText = "✅ 已啟動 (自動白平衡模式已送出)";
-                } else {
-                    statusMsg.innerText = "⚠️ 已啟動 (此相機驅動可能不支援軟體控制白平衡)";
-                }
-
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                snapBtn.disabled = false;
-            } catch (err) {
-                console.error(err);
-                statusMsg.innerText = "❌ 無法啟動相機：" + err.name;
-                alert("無法啟動，請確認沒有其他程式(如OBS)正在佔用相機。");
+            // 設定「曝光時間」滑桿範圍 (快門)
+            if (caps.exposureTime) {
+                timeSlider.min = caps.exposureTime.min;
+                timeSlider.max = caps.exposureTime.max;
+                timeSlider.step = caps.exposureTime.step;
+                timeValue.innerText = settings.exposureTime || 'Auto';
             }
-        });
+        } else {
+            exposureSection.style.display = 'none';
+            statusMsg.innerText = "⚠️ 此相機不支援瀏覽器調整亮度";
+        }
+    }
 
-        // 3. 關閉相機
-        stopBtn.addEventListener('click', () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                snapBtn.disabled = true;
-                statusMsg.innerText = "相機已關閉";
-            }
-        });
+    // 4. 切換 自動/手動 曝光
+    autoExposureToggle.addEventListener('change', async (e) => {
+        if (!track) return;
+        const isAuto = e.target.checked;
 
-        // 4. 拍照
-        snapBtn.addEventListener('click', () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            
-            // 處理鏡像
-            if (mirrorToggle.checked) {
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
+        try {
+            if (isAuto) {
+                // 開啟自動曝光
+                await track.applyConstraints({ advanced: [{ exposureMode: "continuous" }] });
+                compControl.classList.remove('disabled');
+                timeControl.classList.add('disabled');
+                statusMsg.innerText = "模式：自動曝光 (可調整補償)";
+            } else {
+                // 開啟手動曝光
+                await track.applyConstraints({ advanced: [{ exposureMode: "manual" }] });
+                compControl.classList.add('disabled');
+                timeControl.classList.remove('disabled');
+                statusMsg.innerText = "模式：手動曝光 (請調整時間)";
             }
-            
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const dataURL = canvas.toDataURL('image/jpeg', 0.9); // 存成 JPG 畫質 0.9
-            const img = document.createElement('img');
-            img.src = dataURL;
-            
-            // 讓照片的鏡像狀態跟拍攝時一樣
-            if (mirrorToggle.checked) {
-                img.style.transform = "scaleX(-1)";
-            }
-            
-            gallery.prepend(img);
-        });
+        } catch (err) {
+            console.error(err);
+            statusMsg.innerText = "切換模式失敗";
+        }
+    });
 
-        // 5. 鏡像開關控制
-        mirrorToggle.addEventListener('change', (e) => {
-            video.style.transform = e.target.checked ? "scaleX(-1)" : "scaleX(1)";
-        });
-    </script>
+    // 5. 調整曝光補償 (亮度)
+    compSlider.addEventListener('input', async (e) => {
+        if (!track) return;
+        const val = parseFloat(e.target.value);
+        compValue.innerText = val;
+        try {
+            await track.applyConstraints({ advanced: [{ exposureCompensation: val }] });
+        } catch(err) {}
+    });
+
+    // 6. 調整曝光時間 (快門)
+    timeSlider.addEventListener('input', async (e) => {
+        if (!track) return;
+        const val = parseFloat(e.target.value);
+        timeValue.innerText = val;
+        try {
+            await track.applyConstraints({ advanced: [{ exposureTime: val }] });
+        } catch(err) {}
+    });
+
+    // 輔助功能 (關閉、拍照、鏡像)
+    function stopCamera() {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        snapBtn.disabled = true;
+        exposureSection.style.display = 'none';
+    }
+    stopBtn.onclick = stopCamera;
+
+    document.getElementById('mirrorToggle').onchange = (e) => {
+        video.style.transform = e.target.checked ? "scaleX(-1)" : "scaleX(1)";
+    };
+
+    snapBtn.onclick = () => {
+        const canvas = document.getElementById('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (document.getElementById('mirrorToggle').checked) {
+            ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+        }
+        ctx.drawImage(video, 0, 0);
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL('image/jpeg');
+        document.getElementById('gallery').prepend(img);
+    }
+</script>
 
 </body>
 </html>

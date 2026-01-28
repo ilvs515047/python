@@ -3,181 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yi Camera USB 控制中心</title>
+    <title>Yi Camera UVC 全功能調試</title>
     <style>
-        :root { --bg: #121212; --surface: #1e1e1e; --primary: #00bcd4; --text: #e0e0e0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        :root { --bg: #121212; --surface: #1e1e1e; --primary: #00e676; --text: #e0e0e0; }
+        body { font-family: 'Segoe UI', monospace; background: var(--bg); color: var(--text); padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        h2 { margin-top: 20px; font-weight: 300; }
+        .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
         
-        .main-container { width: 95%; max-width: 900px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        video { width: 100%; background: #000; border-radius: 8px; border: 1px solid #333; }
         
-        /* 視訊區塊 */
-        .video-box {
-            width: 100%;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            position: relative;
-        }
-        video { width: 100%; display: block; transform: scaleX(-1); /* 鏡像翻轉，可依需求移除 */ }
+        .panel { background: var(--surface); padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        
+        h3 { margin: 0 0 15px 0; border-bottom: 1px solid #444; padding-bottom: 5px; color: var(--primary); }
+        
+        .control-row { display: flex; align-items: center; margin-bottom: 12px; gap: 10px; }
+        .control-row label { flex: 0 0 120px; font-size: 0.9rem; }
+        .control-row input[type=range] { flex: 1; cursor: pointer; }
+        .control-row span { flex: 0 0 50px; text-align: right; font-family: monospace; }
+        
+        select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
+        
+        .log-box { font-family: monospace; font-size: 0.8rem; color: #888; height: 150px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; }
 
-        /* 控制面板 */
-        .controls-panel {
-            width: 100%;
-            background: var(--surface);
-            padding: 20px;
-            border-radius: 12px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+        button.start-btn { 
+            width: 100%; padding: 15px; font-size: 1.1rem; background: var(--primary); 
+            color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 8px; 
         }
-
-        .control-group { background: #2a2a2a; padding: 15px; border-radius: 8px; }
-        .control-group label { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
-        
-        input[type=range] { width: 100%; cursor: pointer; }
-        
-        /* 按鈕與狀態 */
-        .btn-start {
-            padding: 12px 30px; background: var(--primary); color: #000; border: none; 
-            border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 1rem;
-            transition: transform 0.2s;
-        }
-        .btn-start:hover { transform: scale(1.05); filter: brightness(1.1); }
-        
-        .status-log { 
-            width: 100%; font-family: monospace; font-size: 0.9rem; color: #888; 
-            background: #000; padding: 10px; border-radius: 8px; min-height: 60px;
-        }
-        
-        .unsupported { color: #ff5252; font-size: 0.8em; }
     </style>
 </head>
 <body>
 
-    <h2>Yi Camera USB Controller</h2>
-
-    <div class="main-container">
-        <button class="btn-start" onclick="startCamera()">🔌 連接並啟動攝影機</button>
-        
-        <div class="video-box">
-            <video id="video" autoplay playsinline></video>
-        </div>
-
-        <div class="controls-panel" id="controlsPanel" style="display:none;">
-            <div class="control-group">
-                <label>縮放 (Zoom) <span id="val-zoom">0</span></label>
-                <input type="range" id="input-zoom" disabled>
-                <span id="msg-zoom" class="unsupported"></span>
-            </div>
-
-            <div class="control-group">
-                <label>水平旋轉 (Pan) <span id="val-pan">0</span></label>
-                <input type="range" id="input-pan" disabled>
-                <span id="msg-pan" class="unsupported"></span>
-            </div>
-
-            <div class="control-group">
-                <label>垂直傾斜 (Tilt) <span id="val-tilt">0</span></label>
-                <input type="range" id="input-tilt" disabled>
-                <span id="msg-tilt" class="unsupported"></span>
-            </div>
-        </div>
-
-        <div class="status-log" id="logs">等待連接...</div>
+<div class="container">
+    <button class="start-btn" onclick="initCamera()">🚀 啟動並掃描所有功能</button>
+    <video id="preview" autoplay playsinline></video>
+    
+    <div id="controls-area"></div>
+    
+    <div class="panel">
+        <h3>偵測日誌 (Log)</h3>
+        <div class="log-box" id="logs"></div>
     </div>
+</div>
 
-    <script>
-        const video = document.getElementById('video');
-        const logBox = document.getElementById('logs');
-        let videoTrack;
-        let capabilities;
+<script>
+    const video = document.getElementById('preview');
+    const controlsArea = document.getElementById('controls-area');
+    const logBox = document.getElementById('logs');
+    let track;
 
-        function log(msg) {
-            logBox.innerHTML += `> ${msg}<br>`;
-            logBox.scrollTop = logBox.scrollHeight;
+    // 定義所有可能的 UVC 標準控制項目
+    const KNOWN_CAPABILITIES = [
+        { key: 'brightness', name: '亮度 (Brightness)' },
+        { key: 'contrast', name: '對比 (Contrast)' },
+        { key: 'saturation', name: '飽和度 (Saturation)' },
+        { key: 'sharpness', name: '銳利度 (Sharpness)' },
+        { key: 'exposureCompensation', name: '曝光補償 (EV)' },
+        { key: 'exposureTime', name: '曝光時間 (手動模式)' },
+        { key: 'colorTemperature', name: '色溫 (Color Temp)' },
+        { key: 'zoom', name: '縮放 (Zoom)' },
+        { key: 'focusDistance', name: '對焦距離 (Focus)' } // 通常需要先切換到手動對焦模式
+    ];
+
+    const MODES = [
+        { key: 'exposureMode', name: '曝光模式' },
+        { key: 'whiteBalanceMode', name: '白平衡模式' },
+        { key: 'focusMode', name: '對焦模式' }
+    ];
+
+    function log(msg) {
+        const time = new Date().toLocaleTimeString();
+        logBox.innerHTML += `[${time}] ${msg}<br>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    async function initCamera() {
+        try {
+            log("正在請求最高權限...");
+            // 請求所有可能的權限，讓瀏覽器去談判
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    advanced: KNOWN_CAPABILITIES.map(c => ({ [c.key]: true }))
+                }
+            });
+
+            video.srcObject = stream;
+            track = stream.getVideoTracks()[0];
+            
+            // 等待一下讓硬體準備好
+            setTimeout(scanCapabilities, 500);
+            document.querySelector('.start-btn').style.display = 'none';
+
+        } catch (err) {
+            log("❌ 錯誤: " + err.message);
         }
+    }
 
-        async function startCamera() {
-            try {
-                log("正在請求攝影機權限...");
-                // 關鍵：請求 pan, tilt, zoom 權限
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 },
-                        pan: true, 
-                        tilt: true, 
-                        zoom: true
-                    }
-                });
+    function scanCapabilities() {
+        const capabilities = track.getCapabilities();
+        const settings = track.getSettings();
+        
+        log(`設備名稱: ${track.label}`);
+        log("--- 開始掃描支援功能 ---");
 
-                video.srcObject = stream;
-                videoTrack = stream.getVideoTracks()[0];
-                
-                // 顯示控制面板
-                document.getElementById('controlsPanel').style.display = 'grid';
-                document.querySelector('.btn-start').style.display = 'none';
+        controlsArea.innerHTML = ""; // 清空
 
-                log(`已連接設備: ${videoTrack.label}`);
-                
-                // 檢查設備能力 (Capabilities)
-                checkCapabilities();
-
-            } catch (err) {
-                log(`❌ 錯誤: ${err.name} - ${err.message}`);
-                alert("無法連接攝影機，請確認 USB 連接正常且允許瀏覽器存取。");
+        // 1. 優先生成「模式選擇」 (如: 自動/手動)
+        // 因為很多數值調整(如曝光時間)必須先切換到 'manual' 才會生效
+        MODES.forEach(m => {
+            if (m.key in capabilities) {
+                createModeSelect(m, capabilities[m.key], settings[m.key]);
             }
-        }
+        });
 
-        function checkCapabilities() {
-            // 獲取硬體支援的功能列表
-            capabilities = videoTrack.getCapabilities();
-            const settings = videoTrack.getSettings();
-
-            log("正在偵測硬體控制功能...");
-
-            setupControl('zoom', capabilities.zoom, settings.zoom);
-            setupControl('pan', capabilities.pan, settings.pan);
-            setupControl('tilt', capabilities.tilt, settings.tilt);
-        }
-
-        function setupControl(name, cap, currentVal) {
-            const input = document.getElementById(`input-${name}`);
-            const msg = document.getElementById(`msg-${name}`);
-            const valDisplay = document.getElementById(`val-${name}`);
-
-            if (cap) {
-                // 如果硬體支援
-                input.min = cap.min;
-                input.max = cap.max;
-                input.step = cap.step;
-                input.value = currentVal;
-                input.disabled = false;
-                valDisplay.innerText = currentVal;
-                
-                log(`✅ 支援 ${name}: 範圍 ${cap.min} ~ ${cap.max}`);
-
-                // 綁定事件
-                input.oninput = async (event) => {
-                    const value = parseFloat(event.target.value);
-                    valDisplay.innerText = value;
-                    
-                    const constraints = { advanced: [{ [name]: value }] };
-                    try {
-                        await videoTrack.applyConstraints(constraints);
-                    } catch (err) {
-                        log(`控制失敗 ${name}: ${err}`);
-                    }
-                };
+        // 2. 生成數值滑桿
+        KNOWN_CAPABILITIES.forEach(cap => {
+            if (cap.key in capabilities) {
+                createRangeSlider(cap, capabilities[cap.key], settings[cap.key]);
             } else {
-                // 如果硬體不支援
-                msg.innerText = "此裝置硬體不支援或是驅動程式未開放此功能";
-                log(`⚠️ 不支援 ${name}`);
+                log(`⚠️ 不支援: ${cap.name}`);
             }
-        }
-    </script>
+        });
+        
+        log("--- 掃描完成 ---");
+    }
+
+    function createModeSelect(info, options, current) {
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `<div class="control-row"><label>${info.name}</label><select id="sel-${info.key}"></select></div>`;
+        controlsArea.appendChild(div);
+
+        const select = div.querySelector('select');
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.text = opt;
+            if (opt === current) option.selected = true;
+            select.appendChild(option);
+        });
+
+        log(`✅ 支援模式: ${info.name} [${options.join(', ')}]`);
+
+        select.onchange = async (e) => {
+            try {
+                await track.applyConstraints({ advanced: [{ [info.key]: e.target.value }] });
+                log(`設定 ${info.name} -> ${e.target.value}`);
+                // 模式改變可能會影響其他控制項的可用性(例如切換到手動曝光)，重新掃描一次設定
+                setTimeout(() => {
+                    const newSettings = track.getSettings();
+                    // 這裡可以做更細緻的 UI 更新，暫時只 log
+                }, 200);
+            } catch (err) {
+                log(`設定失敗: ${err.message}`);
+            }
+        };
+    }
+
+    function createRangeSlider(info, cap, current) {
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `
+            <div class="control-row">
+                <label>${info.name}</label>
+                <input type="range" min="${cap.min}" max="${cap.max}" step="${cap.step}" value="${current}" id="rng-${info.key}">
+                <span id="val-${info.key}">${current}</span>
+            </div>
+        `;
+        controlsArea.appendChild(div);
+
+        log(`✅ 支援控制: ${info.name} (${cap.min} ~ ${cap.max})`);
+
+        const input = div.querySelector('input');
+        const valSpan = div.querySelector(`#val-${info.key}`);
+
+        input.oninput = async (e) => {
+            const val = parseFloat(e.target.value);
+            valSpan.innerText = val;
+            
+            try {
+                // 套用設定
+                await track.applyConstraints({ advanced: [{ [info.key]: val }] });
+            } catch (err) {
+                // 有些設定如果頻率太高會報錯，忽略即可
+            }
+        };
+    }
+</script>
+
 </body>
 </html>
